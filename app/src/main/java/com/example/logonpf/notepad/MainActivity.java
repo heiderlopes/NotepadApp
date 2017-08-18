@@ -1,5 +1,6 @@
 package com.example.logonpf.notepad;
 
+import android.app.ProgressDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
@@ -25,6 +26,10 @@ public class MainActivity extends AppCompatActivity {
     private EditText etTexto;
 
     private Nota nota;
+
+    private ProgressDialog progressDoalog;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -32,6 +37,8 @@ public class MainActivity extends AppCompatActivity {
 
         etTitulo = (EditText) findViewById(R.id.etTitulo);
         etTexto = (EditText) findViewById(R.id.etTexto);
+
+        progressDoalog = new ProgressDialog(this);
     }
 
     @Override
@@ -64,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void salvar() {
+        showProgress("Notepad", "Salvando a nota");
+
         NotaAPI service = getRetrofit().create(NotaAPI.class);
         if(nota == null)
             nota = new Nota();
@@ -74,12 +83,16 @@ public class MainActivity extends AppCompatActivity {
         service.salvar(nota).enqueue(new Callback<Void>() {
             @Override
             public void onResponse(Call<Void> call, Response<Void> response) {
+
+                dismissProgress();
                 Toast.makeText(getApplicationContext(),
                         "Nota gravada", Toast.LENGTH_SHORT).show();
+
             }
 
             @Override
             public void onFailure(Call<Void> call, Throwable t) {
+                dismissProgress();
                 Toast.makeText(getApplicationContext(),
                         "Deu ruim", Toast.LENGTH_SHORT).show();
             }
@@ -87,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void pesquisar() {
+        showProgress("Notepad", "Carregando os dados");
         NotaAPI service = getRetrofit().create(NotaAPI.class);
         service.buscarNota(etTitulo.getText().toString())
                 .enqueue(new Callback<List<Nota>>() {
@@ -99,17 +113,38 @@ public class MainActivity extends AppCompatActivity {
                                 nota = response.body()
                                         .get(0);
                                 etTexto.setText(nota.getTexto());
+                            } else {
+                                nota = new Nota();
+                                etTexto.setText("");
                             }
                         }
-
+                        dismissProgress();
                     }
 
                     @Override
                     public void onFailure(Call<List<Nota>> call, Throwable t) {
-
+                        Toast.makeText(getApplicationContext(),
+                                "Deu ruim", Toast.LENGTH_SHORT).show();
+                        dismissProgress();
                     }
                 });
 
+    }
+
+    private void showProgress(String titulo, String mensagem) {
+        if(progressDoalog == null)
+            progressDoalog = new ProgressDialog(MainActivity.this);
+
+        if(!progressDoalog.isShowing()) {
+            progressDoalog.setMessage(mensagem);
+            progressDoalog.setTitle(titulo);
+            progressDoalog.show();
+        }
+    }
+
+    private void dismissProgress() {
+        if(progressDoalog != null)
+            progressDoalog.dismiss();
     }
 }
 
